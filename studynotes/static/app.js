@@ -1424,7 +1424,10 @@ function exportDialog() {
       item("copy", "Markdown (.md)", "Plain text with formatting marks, for other notes apps.", downloadMarkdown),
       item("text", "Plain text (.txt)", "Just the words.", exportText),
       item("share", "Evernote (.enex)", "Brings the note into Evernote or another notes app.", () => { location.href = `/api/notes/export?note=${note.id}`; })),
-    h("p", { class: "hint" }, "Want every note, or moving to another computer? ", h("button", { type: "button", class: "linkish", onclick: () => { dialog.close(); importExport(); } }, "Open Import & Export"), "."),
+    h("h3", { class: "xhead" }, "Or the whole app"),
+    h("div", { class: "xlist" },
+      item("download", "Export everything (.studynotes)", "One file with every note, notebook, topic, page design and setting. Restore it in StudyNotes on any computer.", exportEverything)),
+    h("p", { class: "hint" }, "Bringing an export in, or using Evernote files? ", h("button", { type: "button", class: "linkish", onclick: () => { dialog.close(); importExport(); } }, "Open Import & Export"), "."),
     h("div", { class: "actions" }, h("button", { class: "btn", onclick: () => dialog.close() }, "Close")));
   dialog.showModal();
 }
@@ -1480,38 +1483,84 @@ async function postJSON(path, body) {
   const out = await r.json(); if (!r.ok) throw new Error(out.error || "That didn't work");
   return out;
 }
+// Settings that live in this browser, not the database: layout, sort, the default text look, entry font, recent colours, page kind.
+const PREF_KEYS = ["notes-experience-v3", "notes-sort", "notes-new-kind", "notes-text-default", "notes-entry-font", "notes-recent-colors"];
+function browserPrefs() {
+  const out = {};
+  try { for (const k of PREF_KEYS) { const v = localStorage.getItem(k); if (v != null) out[k] = v; } } catch (e) { /* nothing to add */ }
+  return out;
+}
+function applyPrefs(prefs) {
+  if (!prefs || typeof prefs !== "object") return false;
+  let any = false;
+  try { for (const k of PREF_KEYS) if (typeof prefs[k] === "string" && prefs[k].length < 20000) { localStorage.setItem(k, prefs[k]); any = true; } } catch (e) { return false; }
+  if (any) {
+    try { sort = localStorage.getItem("notes-sort") || sort; const t = localStorage.getItem("notes-experience-v3"); if (t === "journal" || t === "original") theme = t; } catch (e) { /* keep */ }
+    applyTheme();
+  }
+  return any;
+}
+// One click, one file: every notebook (tab), note (Trash too), topic tag, page design, image, attachment, the activity chart and settings.
+async function exportEverything() {
+  try {
+    await flush(); // the open note's last few keystrokes go in too
+    const r = await fetch("/api/notes/backup");
+    if (!r.ok) throw new Error("The export didn't work. Try again");
+    const data = await r.json();
+    data.prefs = browserPrefs();
+    const name = (/filename="?([^";]+)/.exec(r.headers.get("Content-Disposition") || "") || [])[1] || `studynotes-backup-${new Date().toISOString().slice(0, 10)}.studynotes`;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+    const a = h("a", { href: url, download: name }); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    const tags = new Set(data.notes.flatMap((n) => n.tags || []).map((t) => t.toLowerCase())).size;
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    toast(`Exported ${plural(data.notes.length, "note", "notes")}, ${plural(data.notebooks.length, "notebook", "notebooks")} and ${plural(tags, "topic", "topics")} to ${name}`);
+  } catch (error) { fail(error); }
+}
+// The other half: pick a .studynotes file, see what's in it, then merge it in or replace everything.
+function importEverything() {
+  chooseFile(".studynotes,.json,application/json", async (f) => {
+    let data;
+    try { data = JSON.parse(await f.text()); } catch (e) { data = null; }
+    if (!data || data.format !== "studynotes-backup" || !Array.isArray(data.notes) || !Array.isArray(data.notebooks)) return toast("That isn't a StudyNotes export file", true);
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const topics = new Set(data.notes.flatMap((n) => (Array.isArray(n.tags) ? n.tags : [])).map((t) => String(t).toLowerCase())).size;
+    const made = typeof data.exported_at === "number" ? new Date(data.exported_at * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "";
+    const status = h("p", { class: "err", role: "status" });
+    const busy = (on) => dialog.querySelectorAll("button").forEach((b) => { b.disabled = on; });
+    const go_ = async (mode) => {
+      if (mode === "replace" && !confirm(`Replace everything in this app with “${f.name}”?\n\nA safety copy of what's here now is saved first.`)) return;
+      status.textContent = mode === "replace" ? "Replacing…" : "Merging…"; busy(true);
+      try {
+        await leaveNote();
+        const out = await postJSON("/api/notes/restore", { file: await uploadFile(f), mode });
+        applyPrefs(data.prefs);
+        note = null; created = null; dirty = new Set(); conflict = null;
+        dialog.close(); toast(out.message); await go("all");
+      } catch (error) { status.textContent = error.message; busy(false); }
+    };
+    dialog.className = "";
+    dialog.replaceChildren(h("div", { class: "move-dialog" }, h("h2", {}, "Import everything"),
+      h("div", { class: "restore-choice" },
+        h("p", {}, h("b", {}, f.name), made ? ` · exported ${made}` : ""),
+        h("p", { class: "hint", style: "margin:4px 0 0" }, `${plural(data.notes.length, "note", "notes")}, ${plural(data.notebooks.length, "notebook", "notebooks")}, ${plural(topics, "topic", "topics")}${data.prefs && Object.keys(data.prefs).length ? ", plus your settings" : ""}`)),
+      h("div", { class: "actions", style: "justify-content:flex-start;margin:12px 0 4px;flex-wrap:wrap" },
+        h("button", { type: "button", class: "btn primary", onclick: () => go_("merge") }, "Merge with my notes"),
+        h("button", { type: "button", class: "btn danger", onclick: () => go_("replace") }, "Replace everything")),
+      h("p", { class: "hint" }, "Merge adds notes you don't have and updates ones that changed, and keeps the rest. Replace makes this app match the file exactly. Either way, a safety copy of what's here now is saved first."),
+      status,
+      h("div", { class: "actions" }, h("button", { type: "button", class: "btn", onclick: () => dialog.close() }, "Cancel"))));
+    dialog.showModal();
+  });
+}
 function importExport() {
   const nb = view.startsWith("notebook:") ? Number(view.slice(9)) : null;
   const status = h("p", { class: "err", role: "status" });
   const say = (text) => { status.textContent = text; };
 
   // A whole-app backup: every notebook, note, tag, page kind and the activity chart, to restore on another computer.
-  const backupLink = h("button", { type: "button", class: "btn primary", onclick: async () => {
-    try { await flush(); } catch (error) { return say(error.message); } // the open note's last few keystrokes go in too
-    const a = h("a", { href: "/api/notes/backup", download: "" }); document.body.append(a); a.click(); a.remove();
-  } }, ic("download", 15), "Download backup");
-  const chosen = h("div", { class: "restore-choice", hidden: true });
-  const restore = async (f, mode) => {
-    if (mode === "replace" && !confirm(`Replace everything in this app with “${f.name}”?\n\nA safety copy of what's here now is saved first.`)) return;
-    say(mode === "replace" ? "Restoring…" : "Merging…");
-    try {
-      await leaveNote();
-      const name = await uploadFile(f);
-      const out = await postJSON("/api/notes/restore", { file: name, mode });
-      note = null; created = null; dirty = new Set(); conflict = null;
-      dialog.close(); toast(out.message); await go("all");
-    } catch (error) { say(error.message); }
-  };
-  const pickBackup = h("button", { type: "button", class: "btn", onclick: () => chooseFile(".studynotes,.json,application/json", (f) => {
-    say("");
-    chosen.hidden = false;
-    chosen.replaceChildren(
-      h("p", {}, h("b", {}, f.name), ` · ${f.size < 1048576 ? `${Math.max(1, Math.round(f.size / 1024))} KB` : `${(f.size / 1048576).toFixed(1)} MB`}. How should it come in?`),
-      h("div", { class: "actions", style: "justify-content:flex-start;margin:6px 0 0;flex-wrap:wrap" },
-        h("button", { type: "button", class: "btn primary", onclick: () => restore(f, "merge") }, "Merge with my notes"),
-        h("button", { type: "button", class: "btn danger", onclick: () => restore(f, "replace") }, "Replace everything")),
-      h("p", { class: "hint" }, "Merge adds notes you don't have and updates ones that changed. Replace makes this app match the backup exactly."));
-  }) }, "Restore from backup…");
+  const backupLink = h("button", { type: "button", class: "btn primary", onclick: exportEverything }, ic("download", 15), "Export everything");
+  const pickBackup = h("button", { type: "button", class: "btn", onclick: importEverything }, ic("upload", 15), "Import everything…");
 
   // Evernote's .enex format, for one notebook, one note, or everything.
   const scope = h("select", { "aria-label": "What to export" }, h("option", { value: "" }, "All notes"), S.notebooks.map((n) => h("option", { value: `notebook=${n.id}` }, n.name)), note ? h("option", { value: `note=${note.id}` }, `Only: ${note.title || "Untitled"}`) : null);
@@ -1530,8 +1579,8 @@ function importExport() {
   dialog.className = "";
   dialog.replaceChildren(h("div", { class: "move-dialog" }, h("h2", {}, "Import & Export"),
     h("h3", {}, "Move to another device"),
-    h("p", {}, "A backup holds everything: notebooks, notes (Trash too), tags, page designs and your activity chart. Restore it in StudyNotes on any computer."),
-    h("div", { class: "actions", style: "justify-content:flex-start;margin:8px 0 6px;flex-wrap:wrap" }, backupLink, pickBackup), chosen,
+    h("p", {}, "One file with everything: notebooks, notes (Trash too), topics and tags, page designs, images and attachments, your activity chart and settings. Restore it in StudyNotes on any computer."),
+    h("div", { class: "actions", style: "justify-content:flex-start;margin:8px 0 6px;flex-wrap:wrap" }, backupLink, pickBackup),
     h("h3", {}, "Evernote (.enex)"),
     h("label", { class: "field" }, "Export", scope), h("div", { class: "actions", style: "justify-content:flex-start;margin:8px 0 10px;flex-wrap:wrap" }, link, pick),
     h("p", { class: "hint" }, "An imported .enex file becomes a new notebook."), status,
@@ -1733,6 +1782,8 @@ function sidebar() {
   const topicTags = theme === "journal" ? S.tags.filter((t) => !smartTags.includes(t)) : S.tags;
   const tools = [
     h("button", { class: "nav", onclick: clipDialog }, ic("download", 16), h("span", { class: "ellip" }, "Save a web page")),
+    h("button", { class: "nav", onclick: exportEverything, title: "Download one file with every note, notebook, topic and setting" }, ic("download", 16), h("span", { class: "ellip" }, "Export everything")),
+    h("button", { class: "nav", onclick: importEverything, title: "Bring in a StudyNotes export file" }, ic("upload", 16), h("span", { class: "ellip" }, "Import everything")),
     h("button", { class: "nav", onclick: importExport }, ic("share", 16), h("span", { class: "ellip" }, "Import & Export")),
     h("button", { class: "nav theme-toggle", type: "button", "aria-label": `Switch to ${theme === "journal" ? "original" : "journal"} layout`, onclick: switchTheme }, ic("today", 16), h("span", { class: "ellip" }, theme === "journal" ? "Original layout" : "Study journal layout")),
     nav("trash", "trash", "Trash", S.counts.trash)];
@@ -1765,6 +1816,8 @@ function indexHead() {
     searchBox(),
     h("button", { type: "button", class: "jx-browse btn", "aria-expanded": "false", onclick: (e) => { const open = app.querySelector(".journal-index-page").classList.toggle("jx-showside"); e.currentTarget.setAttribute("aria-expanded", String(open)); } }, ic("menu", 15), "Browse"),
     h("button", { class: "study-template btn", type: "button", "aria-haspopup": "menu", onclick: (e) => studyTemplateMenu(e.currentTarget) }, ic("book", 15), h("span", {}, "Study template"), ic("down", 12)),
+    h("button", { class: "export-all btn", type: "button", title: "Bring in a StudyNotes export file from another computer", onclick: importEverything }, ic("upload", 15), h("span", {}, "Import all")),
+    h("button", { class: "export-all btn", type: "button", title: "Download one file with every note, notebook, topic and setting", onclick: exportEverything }, ic("download", 15), h("span", {}, "Export all")),
     h("button", { class: "new btn btn-primary", title: `New entry  ${MOD}${ALT}N`, onclick: newNote }, ic("plus", 16), "New entry"));
 }
 function renderList() {

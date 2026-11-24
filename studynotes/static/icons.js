@@ -16,7 +16,7 @@ const ICON_PATHS = {
   bold: "M7 4h6a4 4 0 0 1 0 8H7zM7 12h7a4 4 0 0 1 0 8H7z", italic: "M14 4h-4M14 20h-4M14 4l-4 16", underline: "M7 4v7a5 5 0 0 0 10 0V4M5 21h14", grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   share: "M18 8a3 3 0 1 0-3-3M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0-3-3M8.6 10.6l6.8-4M8.6 13.4l6.8 4", sidebar: "M4 5h16v14H4zM9 5v14", note2: "M4 6h16M4 12h10M4 18h13",
   rocket: "M12 3c4 2 6 6 6 10l-3 3H9l-3-3c0-4 2-8 6-10zM12 10h.01M8 18l-2 3M16 18l2 3", gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1",
-  download: "M12 4v11M7 10l5 5 5-5M5 20h14", cloud: "M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 17.8 8.6 4.7 4.7 0 0 1 17.5 18z", music: "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z", film: "M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4", retry: "M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4", x: "M6 6l12 12M18 6L6 18",
+  download: "M12 4v11M7 10l5 5 5-5M5 20h14", upload: "M12 15V4M7 9l5-5 5 5M5 20h14", cloud: "M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 17.8 8.6 4.7 4.7 0 0 1 17.5 18z", music: "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM20 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z", film: "M4 5h16v14H4zM8 5v14M16 5v14M4 9h4M4 15h4M16 9h4M16 15h4", retry: "M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4", x: "M6 6l12 12M18 6L6 18",
   wave: "M2 12h2M6 8v8M10 5v14M14 8v8M18 10v4M22 12h-2", play: "M8 5l11 7-11 7z", stop: "M7 7h10v10H7z", up: "M6 15l6-6 6 6",
 };
 function icon(name, size = 18) {

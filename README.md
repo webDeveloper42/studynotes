@@ -37,14 +37,14 @@ To remove the command and login item: `./setup-mac.sh --uninstall` (your notes s
 
 ## Move your notes to another device
 
-1. In the copy that has your notes, open **Import & Export** (at the bottom of the Index's right-hand rail, or from a note: ⋯ → Export… → Open Import & Export) and click **Download backup**. You get one `studynotes-backup-YYYY-MM-DD.studynotes` file.
+1. In the copy that has your notes, click **Export all** in the Index's top bar (also in a note's ⬇ Export dialog and in Import & Export). You get one `studynotes-backup-YYYY-MM-DD.studynotes` file.
 2. Copy that file to the other computer (AirDrop, USB stick, email to yourself…).
-3. There, open **Import & Export → Restore from backup…**, pick the file, and choose:
+3. There, click **Import all** in the Index's top bar, pick the file, check what's in it, and choose:
    - **Merge with my notes**: adds notes you don't have, and updates a note only when the backup's copy is newer. Merging the same file twice changes nothing.
    - **Replace everything**: makes this copy match the backup exactly.
 
 Either way, a safety copy of what was there is saved first (in the data folder's `backups/`).
-The backup holds every notebook and note (Trash too), tags, page designs, images and attachments, the activity chart, and your tab order. Links between notes keep working.
+The backup holds every notebook and note (Trash too), tags, page designs, images and attachments, the activity chart, your tab order, and your app settings (layout, sort, default text style, entry font, recent colours). Links between notes keep working.
 
 ## Where your notes are
 
