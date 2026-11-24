@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# StudyNotes launcher.
+#   studynotes            start it (or just open the page if it's already running)
+#   studynotes --port N   use another port (default 8765)
+#   studynotes cli …      the terminal version of the app (studynotes cli help)
+#   studynotes where      show where your notes are stored
+#   studynotes test       run the test suite
+set -euo pipefail
+
+# Find the repo, even when this file is reached through a symlink in your PATH.
+src="${BASH_SOURCE[0]}"
+while [ -L "$src" ]; do
+  dir="$(cd -P "$(dirname "$src")" && pwd)"
+  src="$(readlink "$src")"
+  [[ "$src" != /* ]] && src="$dir/$src"
+done
+ROOT="$(cd -P "$(dirname "$src")/.." && pwd)"
+cd "$ROOT"
+
+PY="${STUDYNOTES_PYTHON:-}"
+if [ -z "$PY" ]; then
+  for candidate in /opt/homebrew/bin/python3 /usr/local/bin/python3 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then PY="$candidate"; break; fi
+  done
+fi
+[ -n "$PY" ] || { echo "Python 3 isn't installed. Run ./setup-mac.sh first." >&2; exit 1; }
+
+PORT="${STUDYNOTES_PORT:-8765}"
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  [ "${args[$i]}" = "--port" ] && [ $((i + 1)) -lt ${#args[@]} ] && PORT="${args[$((i + 1))]}"
+done
+URL="http://127.0.0.1:$PORT/notes/"
+
+open_page() {
+  if command -v open >/dev/null 2>&1; then open "$URL"; else echo "Open $URL in your browser"; fi
+}
+
+case "${1:-}" in
+  cli)   shift; exec "$PY" studynotes/cli.py "$@" ;;
+  where) exec "$PY" -c 'import sys; sys.path.insert(0, "studynotes"); import store; print(store.data_dir())' ;;
+  test)  exec "$PY" -m unittest discover -s tests ;;
+  -h|--help|help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+esac
+
+if curl -fsS -o /dev/null "$URL" 2>/dev/null; then
+  echo "StudyNotes is already running at $URL"
+  open_page
+  exit 0
+fi
+exec "$PY" -m studynotes.server --open "$@"

@@ -1,0 +1,13 @@
+# Your notes never go in the repo: they live in ~/Library/Application Support/StudyNotes
+data/
+*.db
+*.db-journal
+*.studynotes
+*.enex
+incoming/
+backups/
+
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

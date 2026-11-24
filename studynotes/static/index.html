@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyNotes</title>
+<link rel="stylesheet" href="/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="/notes/app.css">
+<script type="importmap">
+{
+  "imports": {
+    "@tiptap/core": "/vendor/npm/@tiptap/core/dist/index.js",
+    "@tiptap/pm/commands": "/vendor/npm/@tiptap/pm/dist/commands/index.js",
+    "@tiptap/pm/history": "/vendor/npm/@tiptap/pm/dist/history/index.js",
+    "@tiptap/pm/keymap": "/vendor/npm/@tiptap/pm/dist/keymap/index.js",
+    "@tiptap/pm/model": "/vendor/npm/@tiptap/pm/dist/model/index.js",
+    "@tiptap/pm/schema-list": "/vendor/npm/@tiptap/pm/dist/schema-list/index.js",
+    "@tiptap/pm/state": "/vendor/npm/@tiptap/pm/dist/state/index.js",
+    "@tiptap/pm/transform": "/vendor/npm/@tiptap/pm/dist/transform/index.js",
+    "@tiptap/pm/view": "/vendor/npm/@tiptap/pm/dist/view/index.js",
+    "prosemirror-commands": "/vendor/npm/prosemirror-commands/dist/index.js",
+    "prosemirror-history": "/vendor/npm/prosemirror-history/dist/index.js",
+    "prosemirror-keymap": "/vendor/npm/prosemirror-keymap/dist/index.js",
+    "prosemirror-model": "/vendor/npm/prosemirror-model/dist/index.js",
+    "prosemirror-schema-list": "/vendor/npm/prosemirror-schema-list/dist/index.js",
+    "prosemirror-state": "/vendor/npm/prosemirror-state/dist/index.js",
+    "prosemirror-transform": "/vendor/npm/prosemirror-transform/dist/index.js",
+    "prosemirror-view": "/vendor/npm/prosemirror-view/dist/index.js",
+    "prosemirror-dropcursor": "/vendor/npm/prosemirror-dropcursor/dist/index.js",
+    "prosemirror-gapcursor": "/vendor/npm/prosemirror-gapcursor/dist/index.js",
+    "prosemirror-inputrules": "/vendor/npm/prosemirror-inputrules/dist/index.js",
+    "prosemirror-tables": "/vendor/npm/prosemirror-tables/dist/index.js",
+    "prosemirror-changeset": "/vendor/npm/prosemirror-changeset/dist/index.js",
+    "orderedmap": "/vendor/npm/orderedmap/dist/index.js",
+    "rope-sequence": "/vendor/npm/rope-sequence/dist/index.js",
+    "w3c-keyname": "/vendor/npm/w3c-keyname/index.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app" class="container-fluid d-flex p-0 vh-100"></div>
+<div id="toast" role="status" hidden></div>
+<dialog id="dialog"></dialog>
+<script src="/design/icons.js"></script>
+<script type="module" src="/notes/app.js"></script>
+</body>
+</html>
